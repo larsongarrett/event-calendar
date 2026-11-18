@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Night-sky backdrop, candy-colored tickets, one per event; single festive theme by choice */
+  --sky: #14183a;
+  --sky-2: #1f2556;
+  --snow: #f7f4ff;
+  --muted: #b9bbe6;
+  --red: #ff4f6d;
+  --gold: #ffc53d;
+  --mint: #3fe0b0;
+  --pink: #ff7ad9;
+  --blue: #59b8ff;
+  --violet: #a78bfa;
+  --display: "Bagel Fat One", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background:
+    radial-gradient(1200px 500px at 10% -10%, #3a2a7a 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, #0f4a6b 0%, transparent 55%),
+    var(--sky);
+  background-attachment: fixed;
+  color: var(--snow);
+  font-family: var(--body);
+  font-weight: 500;
+  line-height: 1.45;
+  min-height: 100%;
+}
+canvas#snow { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.wrap { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 28px 16px 48px; }
+
+header { display: grid; gap: 10px; margin-bottom: 22px; }
+.kicker { font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 12px; color: var(--gold); }
+h1 {
+  font-family: var(--display); font-weight: 400; margin: 0;
+  font-size: clamp(40px, 11vw, 64px); line-height: .95; text-wrap: balance;
+}
+h1 .c1 { color: var(--red); } h1 .c2 { color: var(--mint); } h1 .c3 { color: var(--gold); }
+.sub { color: var(--muted); margin: 0; font-size: 15px; }
+
+.next {
+  display: grid; gap: 4px; padding: 16px 18px; border-radius: 18px;
+  background: linear-gradient(135deg, var(--red), var(--pink));
+  color: #2a0716; box-shadow: 0 10px 30px -10px rgba(255,79,109,.6);
+  margin-bottom: 26px;
+}
+.next .lbl { font-weight: 800; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .8; }
+.next .what { font-family: var(--display); font-size: 26px; line-height: 1.05; }
+.next .when { font-weight: 800; }
+
+.month { font-family: var(--display); font-weight: 400; font-size: 28px; margin: 28px 0 12px; display: flex; align-items: center; gap: 12px; }
+.month::after { content: ""; flex: 1; height: 3px; border-radius: 3px; background: repeating-linear-gradient(90deg, var(--red) 0 12px, var(--snow) 12px 24px); opacity: .7; }
+
+.list { display: grid; gap: 14px; }
+.ticket {
+  --c: var(--mint);
+  display: grid; grid-template-columns: 78px 1fr; border-radius: 18px; overflow: hidden;
+  background: var(--sky-2); border: 2px solid color-mix(in srgb, var(--c) 55%, transparent);
+}
+.ticket.past { opacity: .45; filter: saturate(.4); }
+.date {
+  background: var(--c); color: #10122b; display: grid; place-content: center; text-align: center;
+  padding: 12px 4px; gap: 0; position: relative;
+}
+.date::after { /* perforation */
+  content: ""; position: absolute; right: -5px; top: 0; bottom: 0; width: 10px;
+  background: radial-gradient(circle at 5px 8px, var(--sky-2) 4px, transparent 4.5px) 0 0 / 10px 16px repeat-y;
+}
+.date .dow { font-weight: 800; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+.date .day { font-family: var(--display); font-size: 36px; line-height: 1; }
+.date .mon { font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; }
+.date .range { font-weight: 800; font-size: 12px; margin-top: 2px; }
+.info { padding: 14px 16px 14px 18px; display: grid; gap: 8px; min-width: 0; }
+.info h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 22px; line-height: 1.1; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--snow);
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+}
+.chip.soon { background: var(--gold); color: #2b1d00; border-color: var(--gold); }
+.notes { margin: 0; color: var(--muted); font-size: 14px; }
+.add {
+  justify-self: start; font-weight: 800; font-size: 13px; color: var(--c); text-decoration: none;
+  border-bottom: 2px solid currentColor; padding-bottom: 1px;
+}
+.add:focus-visible, .ticket:focus-within { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+footer { margin-top: 36px; color: var(--muted); font-size: 13px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { canvas#snow { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="snow" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header>
+    <div class="kicker">What we've got coming up</div>
+    <h1><span class="c1">Event</span> <span class="c2">Calen</span><span class="c3">dar</span></h1>
+    <p class="sub">Everything on the calendar, kept up to date automatically. Tap “Add to my calendar” on anything you want to join.</p>
+  </header>
+
+  <div class="next" id="next" aria-live="polite"></div>
+  <main id="months"></main>
+
+  <footer>Last updated <span id="updated"></span> · Times marked “Time TBA” are still being set</footer>
+</div>
+
+<script src="events.js"></script>
+<script>
+const EVENTS = window.EVENTS || [];
+document.getElementById("updated").textContent = window.EVENTS_UPDATED || "";
+
+
+const COLORS = ["--mint","--red","--gold","--blue","--pink","--violet"];
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function parse(d) { const [y,m,dd] = d.split("-").map(Number); return new Date(y, m-1, dd); }
+function today() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+function daysUntil(d) { return Math.round((parse(d) - today()) / 86400000); }
+function ymd(d) { return d.replace(/-/g, ""); }
+function nextDay(d) { const x = parse(d); x.setDate(x.getDate()+1); return x.getFullYear()+String(x.getMonth()+1).padStart(2,"0")+String(x.getDate()).padStart(2,"0"); }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function calLink(e) {
+  let dates;
+  if (e.start24) {
+    dates = ymd(e.date) + "T" + e.start24.replace(":","") + "00/" + ymd(e.date) + "T" + (e.end24 || e.start24).replace(":","") + "00";
+  } else {
+    dates = ymd(e.date) + "/" + nextDay(e.end || e.date);
+  }
+  const p = new URLSearchParams({ action: "TEMPLATE", text: e.title, dates, ctz: "America/Denver" });
+  if (e.place) p.set("location", e.place);
+  if (e.notes) p.set("details", e.notes);
+  return "https://calendar.google.com/calendar/render?" + p.toString();
+}
+
+function countdown(e) {
+  const n = daysUntil(e.date);
+  const endN = daysUntil(e.end || e.date);
+  if (endN < 0) return { text: "Done", past: true };
+  if (n <= 0) return { text: "Today!", soon: true };
+  if (n === 1) return { text: "Tomorrow!", soon: true };
+  return { text: "In " + n + " days", soon: n <= 7 };
+}
+
+function render() {
+  const root = document.getElementById("months");
+  root.innerHTML = "";
+  let lastMonth = -1, list = null;
+  EVENTS.forEach((e, i) => {
+    const d = parse(e.date);
+    if (d.getMonth() !== lastMonth) {
+      lastMonth = d.getMonth();
+      const h = document.createElement("h3");
+      h.className = "month"; h.textContent = MONTH_FULL[lastMonth];
+      root.appendChild(h);
+      list = document.createElement("div"); list.className = "list"; root.appendChild(list);
+    }
+    const cd = countdown(e);
+    const endD = e.end ? parse(e.end) : null;
+    const el = document.createElement("article");
+    el.className = "ticket" + (cd.past ? " past" : "");
+    el.style.setProperty("--c", "var(" + COLORS[i % COLORS.length] + ")");
+    el.innerHTML =
+      '<div class="date"><span class="dow">' + DOW[d.getDay()] + '</span><span class="day">' + d.getDate() +
+      '</span><span class="mon">' + MON[d.getMonth()] + '</span>' +
+      (endD ? '<span class="range">to ' + MON[endD.getMonth()] + ' ' + endD.getDate() + '</span>' : '') + '</div>' +
+      '<div class="info"><h2>' + esc(e.title) + '</h2><div class="meta">' +
+        '<span class="chip">' + esc(e.time || "Time TBA") + '</span>' +
+        (e.place ? '<span class="chip">' + esc(e.place) + '</span>' : '') +
+        '<span class="chip' + (cd.soon ? ' soon' : '') + '">' + cd.text + '</span>' +
+      '</div>' +
+      (e.notes ? '<p class="notes">' + esc(e.notes) + '</p>' : '') +
+      (cd.past ? '' : '<a class="add" href="' + calLink(e) + '" target="_blank" rel="noopener">Add to my calendar</a>') +
+      '</div>';
+    list.appendChild(el);
+  });
+
+  const up = EVENTS.find(e => daysUntil(e.end || e.date) >= 0);
+  const nx = document.getElementById("next");
+  if (up) {
+    const d = parse(up.date), cd = countdown(up);
+    nx.innerHTML = '<span class="lbl">Up next · ' + cd.text + '</span><span class="what">' + esc(up.title) +
+      '</span><span class="when">' + DOW[d.getDay()] + ', ' + MON[d.getMonth()] + ' ' + d.getDate() +
+      ' · ' + esc(up.time || "Time TBA") + (up.place ? ' · ' + esc(up.place) : '') + '</span>';
+  } else {
+    nx.innerHTML = '<span class="lbl">That’s a wrap</span><span class="what">See you next season!</span>';
+  }
+}
+render();
+
+/* gentle snowfall */
+(function () {
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c = document.getElementById("snow"), x = c.getContext("2d");
+  let W, H, flakes = [];
+  function size() { W = c.width = innerWidth * devicePixelRatio; H = c.height = innerHeight * devicePixelRatio; }
+  size(); addEventListener("resize", size);
+  for (let i = 0; i < 70; i++) flakes.push({ x: Math.random(), y: Math.random(), r: Math.random() * 2.2 + .8, s: Math.random() * .0015 + .0006, w: Math.random() * 6 });
+  function tick(t) {
+    x.clearRect(0, 0, W, H); x.fillStyle = "rgba(255,255,255,.75)";
+    flakes.forEach(f => {
+      f.y += f.s; if (f.y > 1.02) { f.y = -.02; f.x = Math.random(); }
+      const px = (f.x + Math.sin(t / 1800 + f.w) * .01) * W;
+      x.beginPath(); x.arc(px, f.y * H, f.r * devicePixelRatio, 0, 6.283); x.fill();
+    });
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
